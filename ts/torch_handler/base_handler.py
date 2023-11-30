@@ -71,7 +71,7 @@ class BaseHandler(abc.ABC):
             else "cpu"
         )
         self.device = torch.device(
-            self.map_location + ":" + str(properties.get("gpu_id"))
+            f"{self.map_location}:" + str(properties.get("gpu_id"))
             if torch.cuda.is_available() and properties.get("gpu_id") is not None
             else self.map_location
         )
@@ -83,10 +83,7 @@ class BaseHandler(abc.ABC):
             serialized_file = self.manifest["model"]["serializedFile"]
             model_pt_path = os.path.join(model_dir, serialized_file)
 
-        # model def file
-        model_file = self.manifest["model"].get("modelFile", "")
-
-        if model_file:
+        if model_file := self.manifest["model"].get("modelFile", ""):
             logger.debug("Loading eager model")
             self.model = self._load_pickled_model(model_dir, model_file, model_pt_path)
             self.model.to(self.device)
@@ -146,9 +143,7 @@ class BaseHandler(abc.ABC):
         model_class_definitions = list_classes_from_module(module)
         if len(model_class_definitions) != 1:
             raise ValueError(
-                "Expected only one class as model definition. {}".format(
-                    model_class_definitions
-                )
+                f"Expected only one class as model definition. {model_class_definitions}"
             )
 
         model_class = model_class_definitions[0]
@@ -222,8 +217,7 @@ class BaseHandler(abc.ABC):
         self.context = context
         metrics = self.context.metrics
 
-        is_profiler_enabled = os.environ.get("ENABLE_TORCH_PROFILER", None)
-        if is_profiler_enabled:
+        if is_profiler_enabled := os.environ.get("ENABLE_TORCH_PROFILER", None):
             if PROFILER_AVAILABLE:
                 output, _ = self._infer_with_profiler(data=data)
             else:
@@ -231,18 +225,17 @@ class BaseHandler(abc.ABC):
                     "Profiler is enabled but current version of torch does not support."
                     "Install torch>=1.8.1 to use profiler."
                 )
+        elif self._is_describe():
+            output = [self.describe_handle()]
         else:
-            if self._is_describe():
-                output = [self.describe_handle()]
+            data_preprocess = self.preprocess(data)
+
+            if self._is_explain():
+                output = self.explain_handle(data_preprocess, data)
+
             else:
-                data_preprocess = self.preprocess(data)
-
-                if not self._is_explain():
-                    output = self.inference(data_preprocess)
-                    output = self.postprocess(output)
-                else:
-                    output = self.explain_handle(data_preprocess, data)
-
+                output = self.inference(data_preprocess)
+                output = self.postprocess(output)
         stop_time = time.time()
         metrics.add_time(
             "HandlerTime", round((stop_time - start_time) * 1000, 2), None, "ms"
@@ -323,8 +316,7 @@ class BaseHandler(abc.ABC):
             if not target:
                 target = 0
 
-        output_explain = self.get_insights(data_preprocess, inputs, target)
-        return output_explain
+        return self.get_insights(data_preprocess, inputs, target)
 
     def _is_explain(self):
         if self.context and self.context.get_request_header(0, "explain"):

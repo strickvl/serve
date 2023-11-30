@@ -27,7 +27,7 @@ def upload_pypi_packages():
     """
     Takes a list of path values and uploads them to pypi using twine, using token stored in environment variable
     """
-    os.system(f"pip3 install twine -q")
+    os.system("pip3 install twine -q")
 
     # Note: TWINE_USERNAME and TWINE_PASSWORD are expected to be set in the environment
     for dist_path in [TS_WHEEL_PATH, MA_WHEEL_PATH, WA_WHEEL_PATH]:
@@ -36,7 +36,7 @@ def upload_pypi_packages():
             print(f"twine upload for path {dist_path} failed")
 
     print(
-        f"All packages uploaded to test.pypi.org successfully. Please install package as 'pip install -i https://test.pypi.org/simple/ <package-name>'"
+        "All packages uploaded to test.pypi.org successfully. Please install package as 'pip install -i https://test.pypi.org/simple/ <package-name>'"
     )
 
 
@@ -83,9 +83,9 @@ if __name__ == "__main__":
 
     if args.upload_pypi_packages:
         upload_pypi_packages()
-    
+
     if any([args.upload_conda_packages, args.upload_pypi_packages]):
-        print(f"Upload script complete")
+        print("Upload script complete")
     else:
-        print(f"No packages uploaded")
+        print("No packages uploaded")
     

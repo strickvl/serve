@@ -20,7 +20,6 @@ def test_initialize(model_context):
     handler = BaseHandler()
     handler.initialize(model_context)
 
-    assert(True)
     return handler
 
 def test_single_handle(model_context):

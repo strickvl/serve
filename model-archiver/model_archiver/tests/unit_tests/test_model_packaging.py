@@ -41,11 +41,11 @@ class TestModelPackaging:
     @pytest.fixture()
     def patches(self, mocker):
         Patches = namedtuple('Patches', ['arg_parse', 'export_utils', 'export_method'])
-        patches = Patches(mocker.patch('model_archiver.model_packaging.ArgParser'),
-                          mocker.patch('model_archiver.model_packaging.ModelExportUtils'),
-                          mocker.patch('model_archiver.model_packaging.package_model'))
-
-        return patches
+        return Patches(
+            mocker.patch('model_archiver.model_packaging.ArgParser'),
+            mocker.patch('model_archiver.model_packaging.ModelExportUtils'),
+            mocker.patch('model_archiver.model_packaging.package_model'),
+        )
 
     def test_gen_model_archive(self, patches):
         patches.arg_parse.export_model_args_parser.parse_args.return_value = self.args

@@ -36,7 +36,7 @@ def retrieve_msg(conn):
         msg = _retrieve_inference_msg(conn)
         logging.info("Backend received inference at: %d", time.time())
     else:
-        raise ValueError("Invalid command: {}".format(cmd))
+        raise ValueError(f"Invalid command: {cmd}")
 
     return cmd, msg
 

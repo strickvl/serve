@@ -133,8 +133,7 @@ class TextClassifier(TextHandler):
 
         logger.info("attributions shape %s", attributions.shape)
         attributions_sum = self.summarize_attributions(attributions)
-        response = {}
+        response = {"importances": attributions_sum.tolist()}
 
-        response["importances"] = attributions_sum.tolist()
         response["words"] = all_tokens
         return [response]

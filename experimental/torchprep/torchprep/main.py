@@ -37,7 +37,7 @@ def distill(model_path : Path, device : Device = Device.cpu, parameter_scaling :
     """
     [Coming soon]: Create a smaller student model by setting a distillation ratio and teach it how to behave exactly like your existing model
     """
-    print(f"Coming soon")
+    print("Coming soon")
     print("See this notebook for more information https://colab.research.google.com/drive/1RzQtprrHx8PokLQsFiQPAKzfn_DiTpDN?usp=sharing")
 
 @app.command()
@@ -46,11 +46,13 @@ def prune(model_path : Path, prune_amount : float = typer.Option(default=0.3, he
     Zero out small model weights using l1 norm
     """
     model = load_model(model_path, device)
-    
+
     for name, module in model.named_modules():
-        if isinstance(module, torch.nn.Conv2d) or isinstance(module, torch.nn.Linear) or isinstance(module, torch.nn.LSTM):
+        if isinstance(
+            module, (torch.nn.Conv2d, torch.nn.Linear, torch.nn.LSTM)
+        ):
             torch.nn.utils.prune.l1_unstructured(module, "weight", prune_amount)
-    
+
     torch.save(model, 'pruned_model.pt')
     print("Saved prune model pruned_model.pt")
     return model
@@ -120,24 +122,21 @@ def quantize(model_path : Path, precision : Precision ,
     model = load_model(model_path, device)
 
     if device == Device.cpu:
-        if precision == "int8":
-            dtype = torch.qint8
-        else:
-            dtype = torch.float16
-    quantized_model = torch.quantization.quantize_dynamic(
-    model, {torch.nn.LSTM, torch.nn.Linear, torch.nn.Conv2d}, dtype=dtype
-)
+        dtype = torch.qint8 if precision == "int8" else torch.float16
+        quantized_model = torch.quantization.quantize_dynamic(
+        model, {torch.nn.LSTM, torch.nn.Linear, torch.nn.Conv2d}, dtype=dtype
+    )
     # TODO: Add AMP
     if device == Device.cuda:
         if precision == Precision.int8:
             print("int8 precision is not supported for GPUs, defaulting to float16")
         quantized_model = model.half()
-    
+
     print("Model successfully quantized")
 
     print_size_of_model(model, label = "base model")
     print_size_of_model(quantized_model, label = "quantized_model")
-    
+
     if input_shape:
         profile = map(int,input_shape.split(','))
         input_tensor = torch.randn(*profile)
@@ -146,9 +145,9 @@ def quantize(model_path : Path, precision : Precision ,
             input_tensor.to(torch.device("cuda"))
         profile_model(model, input_tensor, label = "base model")
         profile_model(quantized_model, input_tensor, label = "quantized_model")
-    
+
     torch.save(quantized_model, 'quantized_model.pt')
-    print(f"model quantized_model.pt was saved")
+    print("model quantized_model.pt was saved")
     return quantized_model
 
 
@@ -156,11 +155,11 @@ def profile_model(model :torch.nn.Module, input_tensor, label : str = "model", i
     print("Starting profile")
 
     warmup_iterations = iterations // 10
-    for step in range(warmup_iterations):
+    for _ in range(warmup_iterations):
         model(input_tensor)
 
     durations = []
-    for step in tqdm(range(iterations)):
+    for _ in tqdm(range(iterations)):
         tic = time.time()
         model(input_tensor)
         toc = time.time()
@@ -177,8 +176,7 @@ def profile_model(model :torch.nn.Module, input_tensor, label : str = "model", i
 
 def load_model(model_path: str, device="cpu") -> torch.nn.Module:
     map_location = torch.device(device)
-    model = torch.load(model_path, map_location=map_location)
-    return model
+    return torch.load(model_path, map_location=map_location)
 
 def print_size_of_model(model : torch.nn.Module, label : str = ""):
     torch.save(model.state_dict(), "temp.p")

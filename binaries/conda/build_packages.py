@@ -6,7 +6,11 @@ import subprocess
 conda_build_dir = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.join(conda_build_dir, "..", "..")
 MINICONDA_DOWNLOAD_URL = "https://repo.anaconda.com/miniconda/Miniconda3-py39_4.9.2-Linux-x86_64.sh"
-CONDA_BINARY = os.popen("which conda").read().strip() if os.system(f"conda --version") == 0 else  f"$HOME/miniconda/condabin/conda"
+CONDA_BINARY = (
+    os.popen("which conda").read().strip()
+    if os.system("conda --version") == 0
+    else "$HOME/miniconda/condabin/conda"
+)
 
 if os.name == "nt":
     #Assumes miniconda is installed in windows
@@ -24,23 +28,29 @@ def install_miniconda():
     """
 
     # Check if conda binary already exists
-    exit_code = os.system(f"conda --version")
+    exit_code = os.system("conda --version")
     if exit_code == 0:
-        print(f"'conda' already present on the system. Proceeding without a fresh minconda installation.")
+        print(
+            "'conda' already present on the system. Proceeding without a fresh minconda installation."
+        )
         return
     if os.name == "nt":
         print("Identified as Windows system. Please install miniconda using this URL: https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe")
         return
 
-    os.system(f"rm -rf $HOME/miniconda")
+    os.system("rm -rf $HOME/miniconda")
     exit_code = os.system(f"wget {MINICONDA_DOWNLOAD_URL} -O ~/miniconda.sh")
     if exit_code != 0:
-        print(f"miniconda download failed")
+        print("miniconda download failed")
         return exit_code
-    os.system(f"bash ~/miniconda.sh -f -b -p $HOME/miniconda")
-    os.system(f"echo 'export PATH=$HOME/miniconda/bin:$PATH' >> ~/.bashrc")
-    os.system(f"ln -s $HOME/miniconda/bin/activate $HOME/miniconda/condabin/activate")
-    os.system(f"ln -s $HOME/miniconda/bin/deactivate $HOME/miniconda/condabin/deactivate")
+    os.system("bash ~/miniconda.sh -f -b -p $HOME/miniconda")
+    os.system("echo 'export PATH=$HOME/miniconda/bin:$PATH' >> ~/.bashrc")
+    os.system(
+        "ln -s $HOME/miniconda/bin/activate $HOME/miniconda/condabin/activate"
+    )
+    os.system(
+        "ln -s $HOME/miniconda/bin/deactivate $HOME/miniconda/condabin/deactivate"
+    )
 
     os.system(f"{CONDA_BINARY} init")
 

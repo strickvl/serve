@@ -54,13 +54,12 @@ class TestLoadModels:
     @pytest.fixture()
     def patches(self, mocker):
         Patches = namedtuple('Patches', ['mock_open', 'os_path', "is_file", "open_signature"])
-        patches = Patches(
+        return Patches(
             mocker.patch('ts.model_loader.open'),
             mocker.patch('os.path.exists'),
             mocker.patch('os.path.isfile'),
-            mocker.patch('ts.model_service.model_service.open')
+            mocker.patch('ts.model_service.model_service.open'),
         )
-        return patches
 
     def test_load_class_model(self, patches):
         patches.mock_open.side_effect = [mock.mock_open(read_data=self.mock_manifest).return_value]

@@ -27,16 +27,10 @@ def run_markdown_link_checker():
 
 
 def validate_model_on_gpu():
-    # A quick \ crude way of checking if model is loaded in GPU
-    # Assumption is -
-    # 1. GPUs on test setup are only utlizied by torchserve
-    # 2. Models are successfully UNregistered between subsequent calls
-    model_loaded = False
-    for info in nvgpu.gpu_info():
-        if info["mem_used"] > 0 and info["mem_used_percent"] > 0.0:
-            model_loaded = True
-            break
-    return model_loaded
+    return any(
+        info["mem_used"] > 0 and info["mem_used_percent"] > 0.0
+        for info in nvgpu.gpu_info()
+    )
 
 
 def test_sanity():
@@ -47,14 +41,6 @@ def test_sanity():
     resnet18_model = {"name": "resnet-18", "inputs": ["examples/image_classifier/kitten.jpg"],
                       "handler": "image_classifier"}
 
-    bert_token_classification_no_torchscript_model = {"name": "bert_token_classification_no_torchscript",
-         "inputs": ["examples/Huggingface_Transformers/Token_classification_artifacts/sample_text.txt"],
-         "handler": "custom"}
-
-    bert_seqc_without_torchscript_model = {"name": "bert_seqc_without_torchscript",
-         "inputs": ["examples/Huggingface_Transformers/Seq_classification_artifacts/sample_text.txt"],
-         "handler": "custom"}
- 
     models_to_validate = [
         {"name": "fastrcnn", "inputs": ["examples/object_detector/persons.jpg"], "handler": "object_detector"},
         {"name": "fcn_resnet_101",
@@ -78,7 +64,15 @@ def test_sanity():
          "handler": "custom"}
     ]
 
-    if(not sys.platform.startswith('win')):
+    if (not sys.platform.startswith('win')):
+        bert_token_classification_no_torchscript_model = {"name": "bert_token_classification_no_torchscript",
+             "inputs": ["examples/Huggingface_Transformers/Token_classification_artifacts/sample_text.txt"],
+             "handler": "custom"}
+
+        bert_seqc_without_torchscript_model = {"name": "bert_seqc_without_torchscript",
+             "inputs": ["examples/Huggingface_Transformers/Seq_classification_artifacts/sample_text.txt"],
+             "handler": "custom"}
+
         models_to_validate.extend((bert_token_classification_no_torchscript_model, bert_seqc_without_torchscript_model))
 
     ts_log_file = os.path.join("logs", "ts_console.log")
@@ -142,7 +136,7 @@ def test_sanity():
 
         # For each input execute inference n=4 times
         for input in model_inputs:
-            for i in range(4):
+            for _ in range(4):
                 response = ts.run_inference(model_name, input)
                 if response and response.status_code == 200:
                     print(f"## Successfully ran inference on {model_name} model.")
@@ -208,7 +202,7 @@ def test_workflow_sanity():
     if response and response.status_code == 200:
         print(response.text)
     else:
-        print(f"## Failed to register workflow")
+        print("## Failed to register workflow")
         sys.exit(1)
 
     # Run prediction on workflow
@@ -223,7 +217,7 @@ def test_workflow_sanity():
     if response and response.status_code == 200:
         print(response.text)
     else:
-        print(f"## Failed to unregister workflow")
+        print("## Failed to unregister workflow")
         sys.exit(1)
 
     stopped = ts.stop_torchserve()

@@ -38,7 +38,7 @@ TF_MANAGEMENT_API, TF_INFERENCE_API = getAPIS(snapshot_file_tf)
 def setup_module(module):
     test_utils.torchserve_cleanup()
     response = requests.get("https://torchserve.pytorch.org/mar_files/mnist.mar", allow_redirects=True)
-    open(test_utils.MODEL_STORE + "/mnist.mar", 'wb').write(response.content)
+    open(f"{test_utils.MODEL_STORE}/mnist.mar", 'wb').write(response.content)
 
 def teardown_module(module):
     test_utils.torchserve_cleanup()
@@ -49,7 +49,8 @@ def mnist_model_register_using_non_existent_handler_then_scale_up(synchronous=Fa
     Validates that snapshot.cfg is created when management apis are invoked.
     """
     response = requests.post(
-        TF_MANAGEMENT_API + '/models?handler=nehandler&url=mnist.mar')
+        f'{TF_MANAGEMENT_API}/models?handler=nehandler&url=mnist.mar'
+    )
 
     # Scale up workers
     if synchronous:
@@ -57,9 +58,9 @@ def mnist_model_register_using_non_existent_handler_then_scale_up(synchronous=Fa
     else:
         params = (('min_worker', '2'),)
 
-    response = requests.put(TF_MANAGEMENT_API + '/models/mnist', params=params)
+    response = requests.put(f'{TF_MANAGEMENT_API}/models/mnist', params=params)
     # Check if workers got scaled
-    response = requests.get(TF_MANAGEMENT_API + '/models/mnist')
+    response = requests.get(f'{TF_MANAGEMENT_API}/models/mnist')
     return response
 
 
@@ -118,7 +119,9 @@ def test_mnist_model_register_and_inference_on_valid_model():
         'data': (data_file_mnist,
                  open(data_file_mnist, 'rb')),
     }
-    response = run_inference_using_url_with_data(TF_INFERENCE_API + '/predictions/mnist', files)
+    response = run_inference_using_url_with_data(
+        f'{TF_INFERENCE_API}/predictions/mnist', files
+    )
 
     assert (json.loads(response.content)) == 1
     test_utils.unregister_model("mnist")
@@ -131,12 +134,12 @@ def test_mnist_model_register_using_non_existent_handler_with_nonzero_workers():
     """
 
     response = requests.post(
-        TF_MANAGEMENT_API + '/models?handler=nehandlermodels&initial_workers=1&url=mnist.mar')
-    if json.loads(response.content)['code'] == 500 and \
-            json.loads(response.content)['type'] == "InternalServerException":
-        assert True, "Internal Server Exception, " \
-                     "Cannot register model with non existent handler with non zero workers"
-    else:
+        f'{TF_MANAGEMENT_API}/models?handler=nehandlermodels&initial_workers=1&url=mnist.mar'
+    )
+    if (
+        json.loads(response.content)['code'] != 500
+        or json.loads(response.content)['type'] != "InternalServerException"
+    ):
         assert False, "Something is not right!! Successfully registered model with " \
                       "non existent handler with non zero workers"
 
@@ -152,10 +155,10 @@ def test_mnist_model_register_scale_inference_with_non_existent_handler():
                  open(data_file_mnist, 'rb')),
     }
 
-    response = run_inference_using_url_with_data(TF_INFERENCE_API + '/predictions/mnist', files)
-    if response is None:
-        assert True, "Inference failed as the handler is non existent"
-    else:
+    response = run_inference_using_url_with_data(
+        f'{TF_INFERENCE_API}/predictions/mnist', files
+    )
+    if response is not None:
         if json.loads(response.content) == 1:
             assert False, "Something is not right!! Somehow Inference passed " \
                           "despite passing non existent handler"
@@ -171,7 +174,9 @@ def test_mnist_model_register_and_inference_on_valid_model_explain():
         'data': (data_file_mnist,
                  open(data_file_mnist, 'rb')),
     }
-    response = run_inference_using_url_with_data(TF_INFERENCE_API + '/explanations/mnist', files)
+    response = run_inference_using_url_with_data(
+        f'{TF_INFERENCE_API}/explanations/mnist', files
+    )
 
     assert np.array(json.loads(response.content)).shape == (1, 28, 28)
     test_utils.unregister_model("mnist")
@@ -189,7 +194,9 @@ def test_kserve_mnist_model_register_and_inference_on_valid_model():
         s = s.replace('\'','\"')
         data = json.loads(s)
 
-    response = run_inference_using_url_with_data_json(KF_INFERENCE_API + '/v1/models/mnist:predict', data)
+    response = run_inference_using_url_with_data_json(
+        f'{KF_INFERENCE_API}/v1/models/mnist:predict', data
+    )
 
     assert (json.loads(response.content)['predictions'][0]) == 2
     test_utils.unregister_model("mnist")
@@ -205,11 +212,11 @@ def test_kserve_mnist_model_register_scale_inference_with_non_existent_handler(
         s = s.replace('\'','\"')
         data = json.loads(s)
 
-    response = run_inference_using_url_with_data_json(KF_INFERENCE_API + '/v1/models/mnist:predict', data)
+    response = run_inference_using_url_with_data_json(
+        f'{KF_INFERENCE_API}/v1/models/mnist:predict', data
+    )
 
-    if response is None:
-        assert True, "Inference failed as the handler is non existent"
-    else:
+    if response is not None:
         if json.loads(response.content) == 1:
             assert False, "Something is not right!! Somehow Inference passed " \
                           "despite passing non existent handler"
@@ -226,7 +233,9 @@ def test_kserve_mnist_model_register_and_inference_on_valid_model_explain():
         s = s.replace('\'','\"')
         data = json.loads(s)
 
-    response = run_inference_using_url_with_data_json(KF_INFERENCE_API + '/v1/models/mnist:explain', data)
+    response = run_inference_using_url_with_data_json(
+        f'{KF_INFERENCE_API}/v1/models/mnist:explain', data
+    )
 
     assert np.array(json.loads(response.content)['explanations']).shape == (1, 1, 28, 28)
     test_utils.unregister_model("mnist")
@@ -270,7 +279,10 @@ def test_MMF_activity_recognition_model_register_and_inference_on_valid_model():
             'script': info['script'],
             'labels':info['action_labels']
             }
-    response = run_inference_using_url_with_data(TF_INFERENCE_API + '/v1/models/MMF_activity_recognition_v2:predict', pfiles=files)
+    response = run_inference_using_url_with_data(
+        f'{TF_INFERENCE_API}/v1/models/MMF_activity_recognition_v2:predict',
+        pfiles=files,
+    )
     response = response.content.decode("utf-8")
     response = ast.literal_eval(response)
     response = [n.strip() for n in response]
@@ -279,7 +291,7 @@ def test_MMF_activity_recognition_model_register_and_inference_on_valid_model():
 
 def test_huggingface_bert_model_parallel_inference():
     number_of_gpus = torch.cuda.device_count()
-    check = os.popen(f"curl http://localhost:8081/models")
+    check = os.popen("curl http://localhost:8081/models")
     print(check)
     if number_of_gpus > 1:
         batch_size = 1
@@ -294,10 +306,10 @@ def test_huggingface_bert_model_parallel_inference():
         test_utils.start_torchserve(no_config_snapshots=True)
         test_utils.register_model_with_params(params)
         input_text = os.path.join(REPO_ROOT, 'examples/Huggingface_Transformers/Text_gen_artifacts/sample_text_captum_input.txt')
-        
+
         response = os.popen(f"curl http://127.0.0.1:8080/predictions/Textgeneration -T {input_text}")
         response = response.read()
-        
+
         assert  'Bloomberg has decided to publish a new report on the global economy' in response
         test_utils.unregister_model('Textgeneration')
     else:

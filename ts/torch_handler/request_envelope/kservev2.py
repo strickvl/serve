@@ -44,9 +44,7 @@ def _to_datatype(dtype: np.dtype) -> str:
     as_str = str(dtype)
     if as_str not in _NumpyToDatatype:
         as_str = getattr(dtype, "kind")
-    datatype = _NumpyToDatatype[as_str]
-
-    return datatype
+    return _NumpyToDatatype[as_str]
 
 
 class KServev2Envelope(BaseEnvelope):
@@ -88,8 +86,7 @@ class KServev2Envelope(BaseEnvelope):
         """
         logger.debug("Parse input data %s", rows)
         body_list = [body_list.get("data") or body_list.get("body") for body_list in rows]
-        data_list = self._from_json(body_list)
-        return data_list
+        return self._from_json(body_list)
 
     def _from_json(self, body_list):
         """
@@ -101,8 +98,7 @@ class KServev2Envelope(BaseEnvelope):
             logger.debug("Bytes array is %s", body_list)
         if "id" in body_list[0]:
             setattr(self.context, "input_request_id", body_list[0]["id"])
-        data_list = [inputs_list.get("inputs") for inputs_list in body_list][0]
-        return data_list
+        return [inputs_list.get("inputs") for inputs_list in body_list][0]
 
     def format_output(self, data):
         """Translates Torchserve output KServe v2 response format.
@@ -142,19 +138,18 @@ class KServev2Envelope(BaseEnvelope):
         """
         Splits batch output to json objects
         """
-        output = []
-        for item in data:
-            output.append(self._to_json(item))
-        return output
+        return [self._to_json(item) for item in data]
 
     def _to_json(self, data):
         """
         Constructs JSON object from data
         """
-        output_data = {}
         data_ndarray = np.array(data)
-        output_data["name"] = ("explain" if self.context.get_request_header(
-            0, "explain") == "True" else "predict")
+        output_data = {
+            "name": "explain"
+            if self.context.get_request_header(0, "explain") == "True"
+            else "predict"
+        }
         output_data["shape"] = list(data_ndarray.shape)
         output_data["datatype"] = _to_datatype(data_ndarray.dtype)
         output_data["data"] = data_ndarray.flatten().tolist()

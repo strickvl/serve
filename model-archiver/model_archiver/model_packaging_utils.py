@@ -45,7 +45,10 @@ class ModelExportUtils(object):
 
     @staticmethod
     def get_archive_export_path(export_file_path, model_name, archive_format):
-        return os.path.join(export_file_path, '{}{}'.format(model_name, archiving_options.get(archive_format)))
+        return os.path.join(
+            export_file_path,
+            f'{model_name}{archiving_options.get(archive_format)}',
+        )
 
     @staticmethod
     def check_mar_already_exists(model_name, export_file_path, overwrite, archive_format="default"):
@@ -90,15 +93,20 @@ class ModelExportUtils(object):
         elif count == 1:
             return match[0]
         else:
-            raise ModelArchiverError("model-archiver expects only one {} file in the folder."
-                                     " Found {} files {} in model-path.".format(suffix, count, match))
+            raise ModelArchiverError(
+                f"model-archiver expects only one {suffix} file in the folder. Found {count} files {match} in model-path."
+            )
 
     @staticmethod
     def generate_model(modelargs):
-        model = Model(model_name=modelargs.model_name, serialized_file=modelargs.serialized_file,
-                      model_file=modelargs.model_file, handler=modelargs.handler, model_version=modelargs.version,
-                      requirements_file=modelargs.requirements_file)
-        return model
+        return Model(
+            model_name=modelargs.model_name,
+            serialized_file=modelargs.serialized_file,
+            model_file=modelargs.model_file,
+            handler=modelargs.handler,
+            model_version=modelargs.version,
+            requirements_file=modelargs.requirements_file,
+        )
 
     @staticmethod
     def generate_manifest_json(args):
@@ -242,12 +250,7 @@ class ModelExportUtils(object):
         :param unwanted_dirs:
         :return:
         """
-        if directory in unwanted_dirs:
-            return False
-        if directory.startswith('.'):
-            return False
-
-        return True
+        return False if directory in unwanted_dirs else not directory.startswith('.')
 
     @staticmethod
     def file_filter(current_file, files_to_exclude):
@@ -283,5 +286,6 @@ class ModelExportUtils(object):
     def validate_inputs(model_name, export_path):
         ModelExportUtils.check_model_name_regex_or_exit(model_name)
         if not os.path.isdir(os.path.abspath(export_path)):
-            raise ModelArchiverError("Given export-path {} is not a directory. "
-                                     "Point to a valid export-path directory.".format(export_path))
+            raise ModelArchiverError(
+                f"Given export-path {export_path} is not a directory. Point to a valid export-path directory."
+            )

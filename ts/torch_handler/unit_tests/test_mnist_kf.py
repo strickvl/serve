@@ -33,7 +33,6 @@ def test_initialize(model_setup):
     model_context, _ = model_setup
     handler = MNISTClassifier()
     handler.initialize(model_context)
-    assert(True)
     return handler
 
 def test_handle(model_setup):
@@ -48,9 +47,7 @@ def test_initialize_kf(model_setup):
     model_context, _ = model_setup
     handler = MNISTClassifier()
     handler.initialize(model_context)
-    envelope = KServeEnvelope(handler.handle)
-    assert(True)
-    return envelope
+    return KServeEnvelope(handler.handle)
 
 def test_handle_kf(model_setup):
     context, bytes_array = model_setup

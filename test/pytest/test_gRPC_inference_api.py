@@ -61,10 +61,10 @@ def test_inference_apis():
 
         print(response.msg)
 
-        model_input = os.path.dirname(__file__) + "/../" + item['file']
+        model_input = f"{os.path.dirname(__file__)}/../" + item['file']
         prediction = __infer(test_gRPC_utils.get_inference_stub(), item['model_name'], model_input)
 
-        print("Prediction is : ", str(prediction))
+        print("Prediction is : ", prediction)
 
         if 'expected' in item:
             try:

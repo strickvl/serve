@@ -55,14 +55,10 @@ def set_custom_handler(handler_name):
     cmd = test_utils.model_archiver_command_builder(
         model_name="resnet-152-batch",
         version="1.0",
-        model_file="{}/examples/image_classifier/resnet_152_batch/model.py".format(
-            test_utils.CODEBUILD_WD
-        ),
+        model_file=f"{test_utils.CODEBUILD_WD}/examples/image_classifier/resnet_152_batch/model.py",
         serialized_file=serialized_file,
         handler=handler_name,
-        extra_files="{}/examples/image_classifier/index_to_name.json".format(
-            test_utils.CODEBUILD_WD
-        ),
+        extra_files=f"{test_utils.CODEBUILD_WD}/examples/image_classifier/index_to_name.json",
         force=True,
     )
     print(cmd)
@@ -101,9 +97,9 @@ def test_profiler_default_and_custom_handler(set_custom_handler, handler_name):
     """
     assert os.path.exists(data_file_resnet)
     data = open(data_file_resnet, "rb")
-    response = requests.post("{}/predictions/resnet152".format(TF_INFERENCE_API), data)
+    response = requests.post(f"{TF_INFERENCE_API}/predictions/resnet152", data)
     assert "tiger_cat" in json.loads(response.content)
-    assert len(glob.glob("{}/*.pt.trace.json".format(DEFAULT_OUTPUT_DIR))) == 1
+    assert len(glob.glob(f"{DEFAULT_OUTPUT_DIR}/*.pt.trace.json")) == 1
     test_utils.unregister_model("resnet152")
     shutil.rmtree(DEFAULT_OUTPUT_DIR)
     test_utils.torchserve_cleanup()
@@ -122,9 +118,9 @@ def test_profiler_arguments_override(set_custom_handler, handler_name):
         shutil.rmtree(CUSTOM_PATH)
     assert os.path.exists(data_file_resnet)
     data = open(data_file_resnet, "rb")
-    response = requests.post("{}/predictions/resnet152".format(TF_INFERENCE_API), data)
+    response = requests.post(f"{TF_INFERENCE_API}/predictions/resnet152", data)
     assert "tiger_cat" in json.loads(response.content)
-    assert len(glob.glob("{}/*.pt.trace.json".format(CUSTOM_PATH))) == 1
+    assert len(glob.glob(f"{CUSTOM_PATH}/*.pt.trace.json")) == 1
     test_utils.unregister_model("resnet152")
     shutil.rmtree(CUSTOM_PATH)
     test_utils.torchserve_cleanup()

@@ -142,9 +142,7 @@ def warm_up():
              f"{execution_params['content_type']} {execution_params['inference_url']}/{execution_params['inference_model_url']} > {execution_params['result_file']}"
     execute(ab_cmd, wait=True)
 
-    warm_up_lines = sum(1 for _ in open(execution_params['metric_log']))
-
-    return warm_up_lines
+    return sum(1 for _ in open(execution_params['metric_log']))
 
 
 def run_benchmark():
@@ -175,7 +173,7 @@ def register_model():
             'batch_size': execution_params['batch_size'], 'initial_workers': execution_params['workers'],
             'synchronous': 'true'}
     resp = requests.post(url, params=data)
-    if not resp.status_code == 200:
+    if resp.status_code != 200:
         failure_exit(f"Failed to register model.\n{resp.text}")
     click.secho(resp.text)
 
@@ -186,7 +184,7 @@ def unregister_model():
         resp = requests.delete(execution_params['management_url'] + "/workflows/benchmark")
     else:
         resp = requests.delete(execution_params['management_url'] + "/models/benchmark")
-    if not resp.status_code == 200:
+    if resp.status_code != 200:
         failure_exit(f"Failed to unregister model. \n {resp.text}")
     click.secho(resp.text)
 
@@ -335,12 +333,12 @@ def extract_metrics(warm_up_lines):
     lines = lines[warm_up_lines:]
 
     for k, v in metrics.items():
-        all_lines = []
         pattern = re.compile(v)
-        for line in lines:
-            if pattern.search(line):
-                all_lines.append(line.split("|")[0].split(':')[3].strip())
-
+        all_lines = [
+            line.split("|")[0].split(':')[3].strip()
+            for line in lines
+            if pattern.search(line)
+        ]
         out_fname = os.path.join(*(execution_params['tmp_dir'], 'benchmark', k))
         click.secho(f"\nWriting extracted {v} metrics to {out_fname} ", fg='green')
         with open(out_fname, 'w') as outf:
@@ -357,18 +355,19 @@ def generate_csv_output():
 
     click.secho(f"Saving benchmark results to {execution_params['report_location']}")
 
-    artifacts = {}
     with open(execution_params['result_file']) as f:
         data = f.readlines()
 
-    artifacts['Benchmark'] = "AB"
-    artifacts['Batch size'] = execution_params['batch_size']
-    artifacts['Batch delay'] = execution_params['batch_delay']
-    artifacts['Workers'] = execution_params['workers']
-    artifacts['Model'] = '[.mar]({})'.format(execution_params['url'])
-    artifacts['Concurrency'] = execution_params['concurrency']
-    artifacts['Requests'] = '[input]({})'.format(execution_params['requests'])
-    artifacts['TS failed requests'] = extract_entity(data, 'Failed requests:', -1)
+    artifacts = {
+        'Benchmark': "AB",
+        'Batch size': execution_params['batch_size'],
+        'Batch delay': execution_params['batch_delay'],
+        'Workers': execution_params['workers'],
+        'Model': f"[.mar]({execution_params['url']})",
+        'Concurrency': execution_params['concurrency'],
+        'Requests': f"[input]({execution_params['requests']})",
+        'TS failed requests': extract_entity(data, 'Failed requests:', -1),
+    }
     artifacts['TS throughput'] = extract_entity(data, 'Requests per second:', -3)
     artifacts['TS latency P50'] = extract_entity(data, '50%', -1)
     artifacts['TS latency P90'] = extract_entity(data, '90%', -1)
@@ -552,7 +551,7 @@ update_plan_params = {
 def failure_exit(msg):
     import sys
     click.secho(f"{msg}", fg='red')
-    click.secho(f"Test suite terminated due to above failure", fg='red')
+    click.secho("Test suite terminated due to above failure", fg='red')
     sys.exit()
 
 def is_workflow(model_url):

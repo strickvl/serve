@@ -24,7 +24,6 @@ def test_initialize(model_setup):
     handler = ImageSegmenter()
     handler.initialize(model_context)
 
-    assert(True)
     return handler
 
 def test_handle(model_setup):

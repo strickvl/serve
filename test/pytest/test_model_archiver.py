@@ -11,8 +11,13 @@ MODEL_SFILE_NAME = 'resnet18-f37072fd.pth'
 
 def setup_module(module):
     test_utils.torchserve_cleanup()
-    response = requests.get('https://download.pytorch.org/models/' + MODEL_SFILE_NAME, allow_redirects=True)
-    open(test_utils.MODEL_STORE + "/" + MODEL_SFILE_NAME, 'wb').write(response.content)
+    response = requests.get(
+        f'https://download.pytorch.org/models/{MODEL_SFILE_NAME}',
+        allow_redirects=True,
+    )
+    open(f"{test_utils.MODEL_STORE}/{MODEL_SFILE_NAME}", 'wb').write(
+        response.content
+    )
 
 
 def teardown_module(module):
@@ -23,11 +28,11 @@ def create_resnet_archive(model_name="resnset-18", version="1.0", force=False):
     cmd = test_utils.model_archiver_command_builder(
         model_name,
         version,
-        "{}/examples/image_classifier/resnet_18/model.py".format(test_utils.CODEBUILD_WD),
-        "{}resnet18-f37072fd.pth".format(test_utils.MODEL_STORE),
+        f"{test_utils.CODEBUILD_WD}/examples/image_classifier/resnet_18/model.py",
+        f"{test_utils.MODEL_STORE}resnet18-f37072fd.pth",
         "image_classifier",
-        "{}/examples/image_classifier/index_to_name.json".format(test_utils.CODEBUILD_WD),
-        force
+        f"{test_utils.CODEBUILD_WD}/examples/image_classifier/index_to_name.json",
+        force,
     )
     print(cmd)
     cmd = cmd.split(" ")
@@ -36,7 +41,7 @@ def create_resnet_archive(model_name="resnset-18", version="1.0", force=False):
 
 
 def clean_mar_file(mar_name):
-    path = "{}{}".format(test_utils.MODEL_STORE, mar_name)
+    path = f"{test_utils.MODEL_STORE}{mar_name}"
     if os.path.exists(path):
         os.remove(path)
 
@@ -68,8 +73,6 @@ def test_duplicate_model_registration_using_local_url_followed_by_http_url():
     time.sleep(15)
     if json.loads(response.content)['code'] == 500 and \
             json.loads(response.content)['type'] == "InternalServerException":
-        assert True, "Internal Server Exception, " \
-                     "Model file already exists!! Duplicate model registration request"
         test_utils.unregister_model("resnet18")
         time.sleep(10)
     else:
@@ -86,8 +89,6 @@ def test_duplicate_model_registration_using_http_url_followed_by_local_url():
 
     if json.loads(response.content)['code'] == 409 and \
             json.loads(response.content)['type'] == "ConflictStatusException":
-        assert True, "Conflict Status Exception, " \
-                     "Duplicate model registration request"
         response = test_utils.unregister_model("resnet18")
         time.sleep(10)
     else:
@@ -120,10 +121,10 @@ def test_model_archiver_without_handler_flag():
     cmd = test_utils.model_archiver_command_builder(
         "resnet-18",
         "1.0",
-        "{}/examples/image_classifier/resnet_18/model.py".format(test_utils.CODEBUILD_WD),
-        "{}/resnet18-f37072fd.pth".format(test_utils.MODEL_STORE),
+        f"{test_utils.CODEBUILD_WD}/examples/image_classifier/resnet_18/model.py",
+        f"{test_utils.MODEL_STORE}/resnet18-f37072fd.pth",
         None,
-        "{}/examples/image_classifier/index_to_name.json".format(test_utils.CODEBUILD_WD)
+        f"{test_utils.CODEBUILD_WD}/examples/image_classifier/index_to_name.json",
     )
     cmd = cmd.split(" ")
     try:
@@ -138,10 +139,10 @@ def test_model_archiver_without_model_name_flag():
     cmd = test_utils.model_archiver_command_builder(
         None,
         "1.0",
-        "{}/examples/image_classifier/resnet_18/model.py".format(test_utils.CODEBUILD_WD),
-        "{}/resnet18-f37072fd.pth".format(test_utils.MODEL_STORE),
+        f"{test_utils.CODEBUILD_WD}/examples/image_classifier/resnet_18/model.py",
+        f"{test_utils.MODEL_STORE}/resnet18-f37072fd.pth",
         "image_classifier",
-        "{}/examples/image_classifier/index_to_name.json".format(test_utils.CODEBUILD_WD)
+        f"{test_utils.CODEBUILD_WD}/examples/image_classifier/index_to_name.json",
     )
     cmd = cmd.split(" ")
     assert (0 != subprocess.run(cmd).returncode), "Mar file couldn't be created." \
@@ -153,10 +154,10 @@ def test_model_archiver_without_model_file_flag():
         "resnet-18",
         "1.0",
         None,
-        "{}/resnet18-f37072fd.pth".format(test_utils.MODEL_STORE),
+        f"{test_utils.MODEL_STORE}/resnet18-f37072fd.pth",
         "image_classifier",
-        "{}/examples/image_classifier/index_to_name.json".format(test_utils.CODEBUILD_WD),
-        True
+        f"{test_utils.CODEBUILD_WD}/examples/image_classifier/index_to_name.json",
+        True,
     )
 
     cmd = cmd.split(" ")
@@ -171,10 +172,10 @@ def test_model_archiver_without_serialized_flag():
     cmd = test_utils.model_archiver_command_builder(
         "resnet-18",
         "1.0",
-        "{}/examples/image_classifier/resnet_18/model.py".format(test_utils.CODEBUILD_WD),
+        f"{test_utils.CODEBUILD_WD}/examples/image_classifier/resnet_18/model.py",
         None,
         "image_classifier",
-        "{}/examples/image_classifier/index_to_name.json".format(test_utils.CODEBUILD_WD)
+        f"{test_utils.CODEBUILD_WD}/examples/image_classifier/index_to_name.json",
     )
 
     cmd = cmd.split(" ")

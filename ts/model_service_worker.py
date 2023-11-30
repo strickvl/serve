@@ -38,9 +38,7 @@ class TorchModelServiceWorker(object):
                 os.remove(s_name)
             except OSError as e:
                 if os.path.exists(s_name):
-                    raise RuntimeError(
-                        "socket already in use: {}.".format(s_name)
-                    ) from e
+                    raise RuntimeError(f"socket already in use: {s_name}.") from e
 
         elif s_type == "tcp":
             self.sock_name = host_addr if host_addr is not None else "127.0.0.1"
@@ -92,10 +90,7 @@ class TorchModelServiceWorker(object):
                 batch_size = int(load_model_request["batchSize"])
             logging.info("model_name: %s, batchSize: %d", model_name, batch_size)
 
-            gpu = None
-            if "gpu" in load_model_request:
-                gpu = int(load_model_request["gpu"])
-
+            gpu = int(load_model_request["gpu"]) if "gpu" in load_model_request else None
             limit_max_image_pixels = True
             if "limitMaxImagePixels" in load_model_request:
                 limit_max_image_pixels = bool(load_model_request["limitMaxImagePixels"])
@@ -113,7 +108,7 @@ class TorchModelServiceWorker(object):
 
             logging.debug("Model %s loaded.", model_name)
 
-            return service, "loaded model {}".format(model_name), 200
+            return service, f"loaded model {model_name}", 200
         except MemoryError:
             return None, "System out of memory", 507
 
@@ -141,9 +136,9 @@ class TorchModelServiceWorker(object):
                 resp += create_load_model_response(code, result)
                 cl_socket.sendall(resp)
                 if code != 200:
-                    raise RuntimeError("{} - {}".format(code, result))
+                    raise RuntimeError(f"{code} - {result}")
             else:
-                raise ValueError("Received unknown command: {}".format(cmd))
+                raise ValueError(f"Received unknown command: {cmd}")
 
             if (
                 service is not None

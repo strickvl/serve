@@ -32,7 +32,7 @@ def transformers_model_dowloader(mode,pretrained_model_name,num_labels,do_lower_
         config= AutoConfig.from_pretrained(pretrained_model_name,num_labels=num_labels,torchscript=torchscript)
         model = AutoModelForCausalLM.from_pretrained(pretrained_model_name, config=config)
         tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name,do_lower_case=do_lower_case)
-        
+
         # NOTE : for demonstration purposes, we do not go through the fine-tune processing here.
         # A Fine_tunining process based on your needs can be added.
         # An example of  Fine_tuned model has been provided in the README.
@@ -41,9 +41,9 @@ def transformers_model_dowloader(mode,pretrained_model_name,num_labels,do_lower_
     try:
         os.mkdir(NEW_DIR)
     except OSError:
-        print ("Creation of directory %s failed" % NEW_DIR)
+        print(f"Creation of directory {NEW_DIR} failed")
     else:
-        print ("Successfully created directory %s " % NEW_DIR)
+        print(f"Successfully created directory {NEW_DIR} ")
 
     print("Save model and tokenizer/ Torchscript model based on the setting from setup_config", pretrained_model_name, 'in directory', NEW_DIR)
     if save_mode == "pretrained":
@@ -69,9 +69,5 @@ if __name__== "__main__":
     do_lower_case = settings["do_lower_case"]
     max_length = settings["max_length"]
     save_mode = settings["save_mode"]
-    if save_mode == "torchscript":
-        torchscript = True
-    else:
-        torchscript = False
-
+    torchscript = save_mode == "torchscript"
     transformers_model_dowloader(mode,model_name, num_labels,do_lower_case, max_length, torchscript)

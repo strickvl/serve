@@ -16,7 +16,7 @@ NUM_STARTUP_CFG = 0
 def setup_module(module):
     test_utils.torchserve_cleanup()
     response = requests.get("https://torchserve.pytorch.org/mar_files/densenet161.mar", allow_redirects=True)
-    open(test_utils.MODEL_STORE + "/densenet161.mar", 'wb').write(response.content)
+    open(f"{test_utils.MODEL_STORE}/densenet161.mar", 'wb').write(response.content)
 
 def teardown_module(module):
     test_utils.torchserve_cleanup()
@@ -31,12 +31,9 @@ def logs_created(no_config_snapshots=False):
 def validate_metrics_created(no_config_snapshots=False):
     test_utils.delete_all_snapshots()
     global NUM_STARTUP_CFG
-    # Reset NUM_STARTUP_CFG as we are deleting snapshots in the previous step
-    NUM_STARTUP_CFG = 0
     test_utils.start_torchserve(no_config_snapshots=no_config_snapshots)
     if not no_config_snapshots:
-        NUM_STARTUP_CFG += 1
-
+        NUM_STARTUP_CFG = 0 + 1
     assert len(glob.glob('logs/model_metrics.log')) == 1
     assert len(glob.glob('logs/ts_metrics.log')) == 1
 
@@ -47,9 +44,9 @@ def run_log_location_var(custom_path=test_utils.ROOT_DIR, no_config_snapshots=Fa
 
     # This check warrants that we are not accidentally monitoring a readonly logs/snapshot directory
     if os.access(custom_path, os.W_OK):
-        assert len(glob.glob(custom_path + '/access_log.log')) == 1
-        assert len(glob.glob(custom_path + '/model_log.log')) == 1
-        assert len(glob.glob(custom_path + '/ts_log.log')) == 1
+        assert len(glob.glob(f'{custom_path}/access_log.log')) == 1
+        assert len(glob.glob(f'{custom_path}/model_log.log')) == 1
+        assert len(glob.glob(f'{custom_path}/ts_log.log')) == 1
 
 
 def test_logs_created():
@@ -90,7 +87,7 @@ def test_metrics_startup_cfg_created_snapshot_disabled():
     Validates that model metrics is getting created with snapshot disabled.
     """
     validate_metrics_created(no_config_snapshots=True)
-    assert len(glob.glob('logs/config/*startup.cfg')) == 0
+    assert not glob.glob('logs/config/*startup.cfg')
 
 
 def test_log_location_var_snapshot_disabled():
@@ -106,7 +103,7 @@ def test_log_location_var_snapshot_disabled():
     test_utils.stop_torchserve()
     del os.environ['LOG_LOCATION']
     for f in glob.glob(path.join(test_utils.ROOT_DIR, "*.log")):
-        print("-------------Deleting " + f)
+        print(f"-------------Deleting {f}")
         os.remove(f)
     # Remove any old snapshots
     test_utils.delete_all_snapshots()
@@ -129,12 +126,12 @@ def test_log_location_var_snapshot_enabled():
     del os.environ['LOG_LOCATION']
 
     # In case of snapshot enabled, we get these three config files additionally in the custom directory
-    assert len(glob.glob(path.join(test_utils.ROOT_DIR,'config/*startup.cfg'))) >= 1
+    assert glob.glob(path.join(test_utils.ROOT_DIR,'config/*startup.cfg'))
     if platform.system() != "Windows":
-        assert len(glob.glob(path.join(test_utils.ROOT_DIR, 'config/*shutdown.cfg'))) >= 1
-    assert len(glob.glob(path.join(test_utils.ROOT_DIR, 'config/*snap*.cfg'))) >= 1
+        assert glob.glob(path.join(test_utils.ROOT_DIR, 'config/*shutdown.cfg'))
+    assert glob.glob(path.join(test_utils.ROOT_DIR, 'config/*snap*.cfg'))
     for f in glob.glob(path.join(test_utils.ROOT_DIR, "*.log")):
-        print("-------------Deleting "+f)
+        print(f"-------------Deleting {f}")
         os.remove(f)
 
     shutil.rmtree(path.join(test_utils.ROOT_DIR, 'config'))
@@ -150,7 +147,7 @@ def test_async_logging():
     for f in glob.glob("logs/*.log"):
         os.remove(f)
     # delete_all_snapshots()
-    async_config_file = test_utils.ROOT_DIR + 'async-log-config.properties'
+    async_config_file = f'{test_utils.ROOT_DIR}async-log-config.properties'
     with open(async_config_file, "w+") as f:
         f.write("async_logging=true")
     test_utils.start_torchserve(snapshot_file=async_config_file)
@@ -166,7 +163,7 @@ def test_async_logging_non_boolean():
     for f in glob.glob("logs/*.log"):
         os.remove(f)
     # delete_all_snapshots()
-    async_config_file = test_utils.ROOT_DIR + 'async-log-config.properties'
+    async_config_file = f'{test_utils.ROOT_DIR}async-log-config.properties'
     with open(async_config_file, "w+") as f:
         f.write("async_logging=2")
     test_utils.start_torchserve(snapshot_file=async_config_file)
@@ -181,8 +178,8 @@ def run_metrics_location_var(custom_path=test_utils.ROOT_DIR, no_config_snapshot
     test_utils.start_torchserve(no_config_snapshots=no_config_snapshots)
 
     if os.access(custom_path, os.W_OK):
-        assert len(glob.glob(custom_path + '/ts_metrics.log')) == 1
-        assert len(glob.glob(custom_path + '/model_metrics.log')) == 1
+        assert len(glob.glob(f'{custom_path}/ts_metrics.log')) == 1
+        assert len(glob.glob(f'{custom_path}/model_metrics.log')) == 1
 
 
 def test_metrics_location_var_snapshot_disabled():
@@ -199,7 +196,7 @@ def test_metrics_location_var_snapshot_disabled():
     # from environment variable
     test_utils.stop_torchserve()
     del os.environ['METRICS_LOCATION']
-    for f in glob.glob(test_utils.ROOT_DIR + "*.log"):
+    for f in glob.glob(f"{test_utils.ROOT_DIR}*.log"):
         os.remove(f)
     # Remove any old snapshots
     test_utils.delete_all_snapshots()
@@ -221,11 +218,11 @@ def test_metrics_location_var_snapshot_enabled():
     test_utils.stop_torchserve()
     del os.environ['METRICS_LOCATION']
     # In case of snapshot enabled, we get these three config files additionally in the custom directory
-    assert len(glob.glob('logs/config/*startup.cfg')) >= 1
+    assert glob.glob('logs/config/*startup.cfg')
     if platform.system() != "Windows":
-        assert len(glob.glob('logs/config/*shutdown.cfg')) >= 1
-    assert len(glob.glob('logs/config/*snap*.cfg')) >= 1
-    for f in glob.glob(test_utils.ROOT_DIR + "*.log"):
+        assert glob.glob('logs/config/*shutdown.cfg')
+    assert glob.glob('logs/config/*snap*.cfg')
+    for f in glob.glob(f"{test_utils.ROOT_DIR}*.log"):
         os.remove(f)
 
 
@@ -246,11 +243,11 @@ def test_log_location_and_metric_location_vars_snapshot_enabled():
     test_utils.stop_torchserve()
     del os.environ['LOG_LOCATION']
     del os.environ['METRICS_LOCATION']
-    assert len(glob.glob(test_utils.ROOT_DIR + 'config/*startup.cfg')) >= 1
+    assert glob.glob(f'{test_utils.ROOT_DIR}config/*startup.cfg')
     if platform.system() != "Windows":
-        assert len(glob.glob(test_utils.ROOT_DIR + 'config/*shutdown.cfg')) >= 1
-    assert len(glob.glob(test_utils.ROOT_DIR + 'config/*snap*.cfg')) >= 1
-    for f in glob.glob(test_utils.ROOT_DIR + "*.log"):
+        assert glob.glob(f'{test_utils.ROOT_DIR}config/*shutdown.cfg')
+    assert glob.glob(f'{test_utils.ROOT_DIR}config/*snap*.cfg')
+    for f in glob.glob(f"{test_utils.ROOT_DIR}*.log"):
         os.remove(f)
 
     shutil.rmtree(path.join(test_utils.ROOT_DIR, 'config'))
@@ -271,9 +268,9 @@ def test_log_location_var_snapshot_disabled_custom_path_read_only():
     os.environ['LOG_LOCATION'] = RDONLY_DIR
     try:
         run_log_location_var(custom_path=RDONLY_DIR, no_config_snapshots=True)
-        assert len(glob.glob(RDONLY_DIR + '/logs/access_log.log')) == 0
-        assert len(glob.glob(RDONLY_DIR + '/logs/model_log.log')) == 0
-        assert len(glob.glob(RDONLY_DIR + '/logs/ts_log.log')) == 0
+        assert not glob.glob(f'{RDONLY_DIR}/logs/access_log.log')
+        assert not glob.glob(f'{RDONLY_DIR}/logs/model_log.log')
+        assert not glob.glob(f'{RDONLY_DIR}/logs/ts_log.log')
         assert len(glob.glob('logs/model_metrics.log')) == 1
         assert len(glob.glob('logs/ts_metrics.log')) == 1
     finally:
@@ -300,7 +297,7 @@ def test_metrics_location_var_snapshot_enabled_rdonly_dir():
         assert len(glob.glob('logs/model_log.log')) == 1
         assert len(glob.glob('logs/ts_log.log')) == 1
         assert len(glob.glob('logs/config/*snap*.cfg')) == 1
-        assert len(glob.glob(RDONLY_DIR + '/logs/model_metrics.log')) == 0
-        assert len(glob.glob(RDONLY_DIR + '/logs/ts_metrics.log')) == 0
+        assert not glob.glob(f'{RDONLY_DIR}/logs/model_metrics.log')
+        assert not glob.glob(f'{RDONLY_DIR}/logs/ts_metrics.log')
     finally:
         del os.environ['METRICS_LOCATION']

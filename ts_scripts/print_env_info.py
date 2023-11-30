@@ -55,11 +55,7 @@ npm_env =  {
 }
 
 def get_nvidia_smi():
-    # Note: nvidia-smi is currently available only on Windows and Linux
-    smi = 'nvidia-smi'
-    if get_platform() == 'win32':
-        smi = 'nvidia-smi.exe'
-    return smi
+    return 'nvidia-smi.exe' if get_platform() == 'win32' else 'nvidia-smi'
 
 def run(command):
     """Returns (return-code, stdout, stderr)"""
@@ -78,9 +74,7 @@ def run(command):
 def run_and_read_all(command):
     """Reads and returns entire output if rc is 0"""
     rc, out, _ = run(command)
-    if rc != 0:
-        return "N/A"
-    return out
+    return "N/A" if rc != 0 else out
 
 
 def run_and_parse_first_match(command, regex):
@@ -89,15 +83,13 @@ def run_and_parse_first_match(command, regex):
     if rc != 0:
         return "N/A"
     match = re.search(regex, out)
-    if match is None:
-        return "N/A"
-    return match.group(1)
+    return "N/A" if match is None else match.group(1)
 
 def get_npm_packages():
     """Returns `npm ls -g --depth=0` output. """
 
     grep_cmd = r'grep "newman\|markdown-link-check"'
-    out = run_and_read_all('npm ls -g --depth=0 | ' + grep_cmd)
+    out = run_and_read_all(f'npm ls -g --depth=0 | {grep_cmd}')
     if out == "N/A":
         return "**Warning: newman, newman-reporter-html markdown-link-check not installed..."
     return out 
@@ -112,10 +104,10 @@ def get_pip_packages(package_name=None):
             findstr_cmd = os.path.join(system_root, 'System32', 'findstr')
             grep_cmd = r'{} /R "numpy torch"'.format(findstr_cmd)
         elif package_name == "torch":
-            grep_cmd = 'grep "' + package_name + '"'
+            grep_cmd = f'grep "{package_name}"'
         else:
             grep_cmd = r'grep "numpy\|pytest\|pylint\|transformers\|psutil\|future\|wheel\|requests\|sentencepiece\|pillow\|captum\|nvgpu\|pygit2\|torch"'
-        return run_and_read_all(pip + ' list --format=freeze | ' + grep_cmd)
+        return run_and_read_all(f'{pip} list --format=freeze | {grep_cmd}')
 
     out = run_with_pip('pip3')
     if out == "N/A":
@@ -125,9 +117,7 @@ def get_pip_packages(package_name=None):
 
 def get_java_version():
     rc, out, _ = run("java -version")
-    if rc != 0:
-        return "**Warning: java not installed..."
-    return out
+    return "**Warning: java not installed..." if rc != 0 else out
 
 
 def get_platform():
@@ -154,7 +144,9 @@ def get_windows_version():
     system_root = os.environ.get('SYSTEMROOT', 'C:\\Windows')
     wmic_cmd = os.path.join(system_root, 'System32', 'Wbem', 'wmic')
     findstr_cmd = os.path.join(system_root, 'System32', 'findstr')
-    return run_and_read_all('{} os get Caption | {} /v Caption'.format(wmic_cmd, findstr_cmd))
+    return run_and_read_all(
+        f'{wmic_cmd} os get Caption | {findstr_cmd} /v Caption'
+    )
 
 def check_release_file():
     return run_and_parse_first_match('cat /etc/*-release', r'PRETTY_NAME="(.*)"')
@@ -163,13 +155,11 @@ def check_release_file():
 def get_os():
     from platform import machine
     platform = get_platform()
-    if platform == 'win32' or platform == 'cygwin':
+    if platform in ['win32', 'cygwin']:
         return get_windows_version()
     if platform == 'darwin':
         version = get_mac_version()
-        if version is None:
-            return None
-        return 'Mac OSX {} ({})'.format(version, machine())
+        return None if version is None else f'Mac OSX {version} ({machine()})'
     if platform == 'linux':
         # Ubuntu/Debian based
         desc = get_lsb_version()
@@ -177,9 +167,7 @@ def get_os():
             return desc
         # Try reading /etc/*-release
         desc = check_release_file()
-        if desc is not None:
-            return desc
-        return '{} ({})'.format(platform, machine())
+        return desc if desc is not None else f'{platform} ({machine()})'
     # Unknown platform
     return platform
 
@@ -212,11 +200,8 @@ def get_nvidia_gpu_info():
             return torch.cuda.get_device_name(None)
         return None
     uuid_regex = re.compile(r' \(UUID: .+?\)')
-    rc, out, _ = run(smi + ' -L')
-    if rc != 0:
-        return None
-    # Anonymize GPUs by removing their UUID
-    return "\n" + re.sub(uuid_regex, '', out)
+    rc, out, _ = run(f'{smi} -L')
+    return None if rc != 0 else "\n" + re.sub(uuid_regex, '', out)
 
 
 def get_running_cuda_version():
@@ -229,7 +214,7 @@ def get_cudnn_version():
         system_root = os.environ.get('SYSTEMROOT', 'C:\\Windows')
         cuda_path = os.environ.get('CUDA_PATH', "%CUDA_PATH%")
         where_cmd = os.path.join(system_root, 'System32', 'where')
-        cudnn_cmd = '{} /R "{}\\bin" cudnn*.dll'.format(where_cmd, cuda_path)
+        cudnn_cmd = f'{where_cmd} /R "{cuda_path}\\bin" cudnn*.dll'
     elif get_platform() == 'darwin':
         # CUDA libraries and drivers can be found in /usr/local/cuda/. See
         cudnn_cmd = 'ls /usr/local/cuda/lib/libcudnn*'
@@ -237,11 +222,9 @@ def get_cudnn_version():
         cudnn_cmd = 'ldconfig -p | grep libcudnn | rev | cut -d" " -f1 | rev'
     rc, out, _ = run(cudnn_cmd)
     # find will return 1 if there are permission errors or if not found
-    if len(out) == 0 or (rc != 1 and rc != 0):
+    if len(out) == 0 or rc not in [1, 0]:
         l = os.environ.get('CUDNN_LIBRARY')
-        if l is not None and os.path.isfile(l):
-            return os.path.realpath(l)
-        return None
+        return os.path.realpath(l) if l is not None and os.path.isfile(l) else None
     files = set()
     for fn in out.split('\n'):
         fn = os.path.realpath(fn)  # eliminate symbolic links
@@ -254,7 +237,7 @@ def get_cudnn_version():
     if len(files) == 1:
         return files[0]
     result = '\n'.join(files)
-    return 'Probably one of the following:\n{}'.format(result)
+    return f'Probably one of the following:\n{result}'
 
 
 def get_torchserve_version():
@@ -284,10 +267,12 @@ def populate_torchserve_env(torch_pkg):
         if pkg.split("==")[0] == "torchserve" and len(torchserve_branch) == 0:
             torchserve_env["torchserve"] = pkg
         if pkg.split("==")[0] == "torch-model-archiver" and len(torchserve_branch) == 0:
-            torchserve_env["torch_model_archiver"] = pkg 
+            torchserve_env["torch_model_archiver"] = pkg
     if len(torchserve_branch) > 0: 
-        torchserve_env["torchserve"] = "torchserve==" + get_torchserve_version()
-        torchserve_env["torch_model_archiver"] = "torch-model-archiver==" + get_torch_model_archiver()
+        torchserve_env["torchserve"] = f"torchserve=={get_torchserve_version()}"
+        torchserve_env[
+            "torch_model_archiver"
+        ] = f"torch-model-archiver=={get_torch_model_archiver()}"
 
 
 def populate_python_env(pip_version, pip_list_output):
@@ -411,8 +396,5 @@ def main(branch_name):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        torchserve_branch = sys.argv[1]
-    else:
-        torchserve_branch = "" 
+    torchserve_branch = sys.argv[1] if len(sys.argv) > 1 else ""
     main(torchserve_branch)
